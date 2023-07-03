@@ -1,40 +1,52 @@
-const mockCreate = jest.fn();
-const mockGet = jest.fn();
-
-(mockCreate as jest.Mock).mockReturnValue({ get: mockGet });
-jest.mock('axios', () => ({
-  create: mockCreate,
-}));
-
 import axios from 'axios';
-import { throttledGetDataFromApi } from './index';
+import { THROTTLE_TIME, throttledGetDataFromApi } from './index';
+
+jest.mock('axios');
+
+const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('throttledGetDataFromApi', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  });
+
   test('should create instance with provided base url', async () => {
+    const expectedData = 'test';
+    mockedAxios.create.mockReturnValueOnce(mockedAxios);
+    mockedAxios.get.mockResolvedValueOnce({ data: expectedData });
+
     await throttledGetDataFromApi('');
 
-    expect(mockCreate).toHaveBeenCalledWith({
+    expect(mockedAxios.create).toHaveBeenCalledWith({
       baseURL: 'https://jsonplaceholder.typicode.com',
     });
   });
 
   test('should perform request to correct provided url', async () => {
-    mockGet.mockResolvedValue({ data: 'test' });
+    const providedUrl = '/test';
+    const expectedData = 'test';
+    mockedAxios.create.mockReturnValueOnce(mockedAxios);
+    mockedAxios.get.mockResolvedValue({ data: expectedData });
 
-    await throttledGetDataFromApi('/test');
+    throttledGetDataFromApi(providedUrl);
 
-    //expect(mockGet).toHaveBeenCalledWith('/test');
-    expect(mockCreate).toHaveBeenCalled();
+    jest.advanceTimersByTime(THROTTLE_TIME);
+
+    expect(mockedAxios.get).toHaveBeenCalledWith(providedUrl);
   });
 
   test('should return response data', async () => {
-    const mockCreate = jest.spyOn(axios, 'create');
-    const mockGet = jest.fn();
-    (mockCreate as jest.Mock).mockReturnValue({ get: mockGet });
-    (mockGet as jest.Mock).mockResolvedValue({ data: 'test' });
+    const expectedData = 'test';
+    mockedAxios.create.mockReturnValueOnce(mockedAxios);
+    mockedAxios.get.mockResolvedValue({ data: expectedData });
 
     const result = await throttledGetDataFromApi('/test');
 
-    expect(result).toBe('test');
+    expect(result).toBe(expectedData);
   });
 });
