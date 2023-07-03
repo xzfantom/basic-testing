@@ -1,5 +1,11 @@
-// Uncomment the code below and write your tests
 import { getBankAccount, SynchronizationFailedError } from '.';
+import lodash from 'lodash';
+
+jest.mock('lodash', () => ({
+  random: jest.fn(),
+}));
+
+const mockedLodash = jest.mocked(lodash);
 
 describe('BankAccount', () => {
   test('should create account with initial balance', () => {
@@ -54,11 +60,11 @@ describe('BankAccount', () => {
 
   test('fetchBalance should return number in case if request did not failed', async () => {
     const testAccount = getBankAccount(100);
+    mockedLodash.random.mockReturnValue(1);
+    mockedLodash.random.mockReturnValueOnce(100);
 
     const balance = await testAccount.fetchBalance();
-    if (balance !== null) {
-      expect(typeof balance).toBe('number');
-    }
+    expect(typeof balance).toBe('number');
   });
 
   test('should set new balance if fetchBalance returned number', async () => {
